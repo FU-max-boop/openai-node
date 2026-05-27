@@ -1,6 +1,7 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import * as ResponsesAPI from './responses';
+import { isBedrockOpenAI, supportsBedrockResponsesWebsocket } from '../../bedrock';
 import { OpenAI } from '../../client';
 import { EventEmitter } from '../../core/EventEmitter';
 import { OpenAIError } from '../../core/error';
@@ -97,6 +98,10 @@ export abstract class ResponsesEmitter extends EventEmitter<WebSocketEvents> {
 }
 
 export function buildURL(client: OpenAI, parameters: Record<string, unknown>): URL {
+  if (isBedrockOpenAI(client) && !supportsBedrockResponsesWebsocket()) {
+    throw new OpenAIError('Amazon Bedrock does not support `responses websocket` through this SDK client.');
+  }
+
   const { ...query } = parameters;
   const endpoint = '/responses';
   const url = new URL(client.buildURL(endpoint, query, undefined));
