@@ -104,6 +104,7 @@ function unsupportedFeature(featureName: string): never {
   throw new Errors.OpenAIError(`Amazon Bedrock does not support \`${featureName}\` through this SDK client.`);
 }
 
+/** Resolve the default Bedrock Mantle API root from the configured AWS region. */
 function deriveBedrockBaseURL(awsRegion: string | undefined): string {
   const region = awsRegion?.trim();
   if (!region) {
@@ -115,6 +116,7 @@ function deriveBedrockBaseURL(awsRegion: string | undefined): string {
   return `https://bedrock-mantle.${region}.api.aws/openai/v1`;
 }
 
+/** Normalize a Bedrock Responses URL variant back to the provider API root. */
 function normalizeBedrockBaseURL(baseURL: string): string {
   const url = new URL(baseURL);
   const responsesMatch = url.pathname.match(/\/responses(?:\/.*)?$/);
@@ -139,6 +141,7 @@ function objectValues(value: unknown): unknown[] {
   return [];
 }
 
+/** Reject denylisted Responses tool definitions and tool choices. */
 function validateToolLike(value: unknown): void {
   const type = recordType(value);
   if (type && BEDROCK_CAPABILITIES.unsupportedToolTypes.has(type)) {
@@ -152,6 +155,7 @@ function validateToolLike(value: unknown): void {
   }
 }
 
+/** Walk nested Responses input values and reject denylisted item types. */
 function validateInputValue(value: unknown): void {
   const type = recordType(value);
   if (type && BEDROCK_CAPABILITIES.unsupportedInputItemTypes.has(type)) {
@@ -179,6 +183,7 @@ type BedrockResponseBody = {
   tools?: unknown;
 };
 
+/** Fail early only for Bedrock Responses features known to be unsupported. */
 function validateResponseCreateBody(body: BedrockResponseBody): void {
   for (const tool of objectValues(body.tools)) {
     validateToolLike(tool);
@@ -197,6 +202,7 @@ function validateResponseCreateBody(body: BedrockResponseBody): void {
   }
 }
 
+/** Restore the SDK convenience property when Bedrock omits it from a parsed response. */
 function addBedrockOutputText<ResponseT extends ResponsesAPI.Response>(response: ResponseT): ResponseT {
   if (!Object.getOwnPropertyDescriptor(response, 'output_text')) {
     addOutputText(response);
@@ -205,6 +211,7 @@ function addBedrockOutputText<ResponseT extends ResponsesAPI.Response>(response:
   return response;
 }
 
+/** Wrap generated Responses helpers with Bedrock-specific early validation. */
 function guardBedrockResponses(responses: API.Responses): API.Responses {
   const create = responses.create.bind(responses);
   const compact = responses.compact.bind(responses);
@@ -259,6 +266,7 @@ function guardBedrockResponses(responses: API.Responses): API.Responses {
   return responses;
 }
 
+/** Replace unsupported top-level resources with provider-specific early failures. */
 function defineUnsupportedResource(client: BedrockOpenAI, resourceName: string): void {
   Object.defineProperty(client, resourceName, {
     configurable: true,
